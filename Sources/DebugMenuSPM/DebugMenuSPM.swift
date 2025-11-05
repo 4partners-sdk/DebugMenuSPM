@@ -9,15 +9,16 @@ public class DebugMenuService: DebugMenuDelegate {
     public var resetOnboarding: (() -> Void)?
     public var resetTutorialsForFeatures: (() -> Void)?
     
-    private(set) var simulatePremium: Bool
-    private(set) var simulatePurchase: Bool
-    private(set) var simulateNegativeFlow: Bool
-    private(set) var simulateMissingAdaptyProduct: Bool
-    private(set) var simulateSplashError: Bool
-    private(set) var shouldSetSpecialOfferTimer10s: Bool
-    private(set) var shouldSetSecurityCenterTimer3m: Bool
-    private(set) var shouldSetOldiOSVersion: Bool
-    private(set) var emailForCheck: String = ""
+    public var simulatePremium: Bool
+    public var simulatePurchase: Bool
+    public var simulateNegativeFlow: Bool
+    public var simulateMissingAdaptyProduct: Bool
+    public var simulateSplashError: Bool
+    public var shouldSetSpecialOfferTimer10s: Bool
+    public var shouldSetSecurityCenterTimer3m: Bool
+    public var shouldSetOldiOSVersion: Bool
+    public var emailForCheck: String = ""
+    
     private let innerHandler: DebugMenuInnerDelegate = DebugMenuInnerHandler()
     private let store = DebugMenuUserDefaultsService.shared
     private var gesture: UISwipeGestureRecognizer?
