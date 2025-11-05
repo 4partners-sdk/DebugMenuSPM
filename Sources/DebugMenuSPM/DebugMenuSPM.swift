@@ -4,97 +4,107 @@ public final class DebugMenuSDK {
     public static let shared = DebugMenuSDK()
     private init() {}
 
-    // Окно с самим меню (поверх всего)
+    // Окно с меню (поверх всего)
     private var overlayWindow: UIWindow?
 
-    // Служебное окно-детектор жестов/шейка (прозрачное, не мешает тачам)
+    // Прозрачное окно-детектор жестов/шейка
     private var detectorWindow: DetectorWindow?
 
     // MARK: - Public API
 
-    /// Включает глобальные триггеры: Shake + трехпальцевый свайп (в любом направлении).
-    @MainActor
+    /// Включить глобальные триггеры: shake + трехпальцевый свайп (в любом направлении).
     public func enableGlobalTriggers() {
-        // (опционально) включает системную обработку шейка; нам не обязательно, но иногда помогает
-        UIApplication.shared.applicationSupportsShakeToEdit = true
+        onMain {
+            UIApplication.shared.applicationSupportsShakeToEdit = true
 
-        guard detectorWindow == nil,
-              let scene = Self.activeWindowScene() else { return }
+            guard self.detectorWindow == nil,
+                  let scene = Self.activeWindowScene() else { return }
 
-        let win = DetectorWindow(windowScene: scene)
-        win.windowLevel = .statusBar + 1
-        win.backgroundColor = .clear
-        win.isHidden = false
-        win.isUserInteractionEnabled = true
+            let win = DetectorWindow(windowScene: scene)
+            win.windowLevel = .statusBar + 1
+            win.backgroundColor = .clear
+            win.isHidden = false
+            win.isUserInteractionEnabled = true
 
-        // триггеры — не блокируем пользовательские касания
-        for dir in [UISwipeGestureRecognizer.Direction.up,
-                    .down, .left, .right] {
-            let g = UISwipeGestureRecognizer(target: self, action: #selector(handleThreeFingerSwipe))
-            g.numberOfTouchesRequired = 3
-            g.direction = dir
-            g.cancelsTouchesInView = false
-            win.addGestureRecognizer(g)
+            // Три пальца, любой свайп
+            for dir in [UISwipeGestureRecognizer.Direction.up, .down, .left, .right] {
+                let g = UISwipeGestureRecognizer(target: self, action: #selector(Self.handleThreeFingerSwipe(_:)))
+                g.numberOfTouchesRequired = 3
+                g.direction = dir
+                g.cancelsTouchesInView = false
+                win.addGestureRecognizer(g)
+            }
+
+            win.makeKey()
+            _ = win.becomeFirstResponder()
+
+            self.detectorWindow = win
         }
+    }
 
-        // важный момент: делаем окно key, чтобы ловить shake-события,
-        // но отключим захват тачей через хит-тест (ниже).
-        win.makeKey()
-        // и просим стать firstResponder для получения motion-событий
-        _ = win.becomeFirstResponder()
-
-        detectorWindow = win
+    /// Отключить триггеры и убрать служебное окно
+    public func disableGlobalTriggers() {
+        onMain {
+            self.detectorWindow?.isHidden = true
+            self.detectorWindow = nil
+        }
     }
 
     /// Показать меню поверх всего UI
-    @MainActor
     public func show() {
-        guard overlayWindow == nil,
-              let scene = Self.activeWindowScene() else { return }
+        onMain {
+            guard self.overlayWindow == nil,
+                  let scene = Self.activeWindowScene() else { return }
 
-        let window = UIWindow(windowScene: scene)
-        window.windowLevel = .alert + 1
-        window.backgroundColor = .clear
-        window.rootViewController = DebugMenuContainerVC()
-        window.isHidden = false
-        overlayWindow = window
+            let window = UIWindow(windowScene: scene)
+            window.windowLevel = .alert + 1
+            window.backgroundColor = .clear
+            window.rootViewController = DebugMenuContainerVC()
+            window.isHidden = false
+            self.overlayWindow = window
+        }
     }
 
     /// Спрятать меню
-    @MainActor
     public func hide() {
-        overlayWindow?.isHidden = true
-        overlayWindow = nil
+        onMain {
+            self.overlayWindow?.isHidden = true
+            self.overlayWindow = nil
+        }
     }
 
-    /// Переключить состояние
-    @MainActor
+    /// Переключить состояние меню
     public func toggle() {
-        if overlayWindow == nil { show() } else { hide() }
+        onMain {
+            if self.overlayWindow == nil { self.show() } else { self.hide() }
+        }
     }
 
     // MARK: - Internal handlers
 
     @objc private func handleThreeFingerSwipe(_ recognizer: UISwipeGestureRecognizer) {
-        // Любой трехпальцевый свайп — переключаем меню
-        toggle()
+        toggle() // безопасно: toggle() сам отправит на main при необходимости
     }
 
     // MARK: - Helpers
 
-    /// Активная foreground-сцена (поддержка multi-scene)
+    /// Активная foreground-сцена (всегда зови с main)
     private static func activeWindowScene() -> UIWindowScene? {
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive }
     }
+
+    /// Выполнить блок на главном потоке без двойного диспатча
+    @inline(__always)
+    private func onMain(_ block: @escaping () -> Void) {
+        if Thread.isMainThread { block() } else { DispatchQueue.main.async { block() } }
+    }
 }
 
 // MARK: - Прозрачное окно-детектор
 private final class DetectorWindow: UIWindow {
-
-    // Не перехватываем тачи приложения:
-    // пропускаем хит-тест, чтобы все события ушли в основные окна
+    // Не перехватываем тачи приложения — пропускаем хит-тест
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool { false }
 
     // Разрешаем получать shake-события
@@ -102,13 +112,11 @@ private final class DetectorWindow: UIWindow {
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         guard motion == .motionShake else { return }
-        Task { @MainActor in
-            DebugMenuSDK.shared.toggle()
-        }
+        DebugMenuSDK.shared.toggle() // сам диспатчит на main в нужный момент
     }
 }
 
-// MARK: - UI меню
+// MARK: - UI меню (простая карточка)
 final class DebugMenuContainerVC: UIViewController {
     private lazy var dimView: UIView = {
         let v = UIView()
