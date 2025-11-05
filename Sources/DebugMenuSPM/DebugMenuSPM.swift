@@ -23,7 +23,7 @@ public class DebugMenuService: DebugMenuDelegate {
     private var gesture: UISwipeGestureRecognizer?
     private var isPresenting = false
     
-    // MARK: - init 
+    // MARK: - init
     private init() {
         simulatePremium = store.simulatePremium
         simulatePurchase = store.simulatePurchase
@@ -36,7 +36,7 @@ public class DebugMenuService: DebugMenuDelegate {
         emailForCheck = store.emailForCheck
     }
     
-    func start() {
+    public func start() {
         setupShakeDetection()
         
         NotificationCenter.default.addObserver(
