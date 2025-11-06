@@ -7,8 +7,10 @@
 
 ## Cтарт
 
-1. Добавть `DebugMenu/` в свой Xcode-проект через SPM 
+1. Добавть `DebugMenu/` в свой Xcode-проект через SPM
+   
 Cсылкa: `https://github.com/4partners-sdk/DebugMenuSPM.git`
+
 Dependency Rule: `Up To Next Major`
 
 2. В `AppDelegate` или `SceneDelegate` добавь запуск:
