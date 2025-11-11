@@ -1,15 +1,15 @@
 import Foundation
 
 public protocol DebugMenuUserDefaultsProviding {
-    public var simulatePremium: Bool { get set }
-    public var simulatePurchase: Bool { get set }
-    public var simulateNegativeFlow: Bool { get set }
-    public var simulateMissingAdaptyProduct: Bool { get set }
-    public var simulateSplashError: Bool { get set }
-    public var shouldSetSpecialOfferTimer: Bool { get set }
-    public var shouldSetSecurityCenterTimer: Bool { get set }
-    public var simulateOldiOSVersion: Bool { get set }
-    public var emailForCheck: String { get set }
+    var simulatePremium: Bool { get set }
+    var simulatePurchase: Bool { get set }
+    var simulateNegativeFlow: Bool { get set }
+    var simulateMissingAdaptyProduct: Bool { get set }
+    var simulateSplashError: Bool { get set }
+    var shouldSetSpecialOfferTimer: Bool { get set }
+    var shouldSetSecurityCenterTimer: Bool { get set }
+    var simulateOldiOSVersion: Bool { get set }
+    var emailForCheck: String { get set }
 }
 
 public enum DebugMenuUserDefaultsKey: String {
