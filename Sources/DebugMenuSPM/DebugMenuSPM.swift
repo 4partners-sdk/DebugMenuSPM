@@ -18,9 +18,9 @@ public class DebugMenuService: DebugMenuDelegate {
     public var shouldSetSecurityCenterTimer3m: Bool
     public var shouldSetOldiOSVersion: Bool
     public var emailForCheck: String = ""
+    public let store = DebugMenuUserDefaultsService.shared
     
     private let innerHandler: DebugMenuInnerDelegate = DebugMenuInnerHandler()
-    private let store = DebugMenuUserDefaultsService.shared
     private var gesture: UISwipeGestureRecognizer?
     private var isPresenting = false
     
