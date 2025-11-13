@@ -16,7 +16,7 @@ Dependency Rule: `Up To Next Major`
 2. В `AppDelegate` или `SceneDelegate` добавь запуск:
 
 ```swift
-DebugMenuActivator.shared.start()
+DebugMenuService.shared.start()
 ```
 
 Можно вызывать где угодно: в `application(_:didFinishLaunchingWithOptions:)`, координаторе и т.д.
