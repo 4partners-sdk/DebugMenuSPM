@@ -1,41 +1,47 @@
 import SwiftUI
+import Combine
 import Contacts
 
 final class ContactsViewModelGenerator: ObservableObject {
-    
     private let contactsService: ContactsServiceGenerator = ContactsServiceImpl()
     
-    public func requestAccess() async -> Bool {
-        await contactsService.requestAccess()
+    @Published public var allContacts: [ContactEntity] = []
+    @Published public var state: ContactsActionState = .readyToGo
+    @Published public var isLoading: Bool = false
+    @Published public var error: Error?
+    
+    @Published var duplicateGroupsCount: String = "1"
+    @Published var duplicatesPerGroup: String = "2"
+
+    enum DuplicateType: Hashable {
+        case name, number, email
+    }
+
+    @Published var duplicateTypeSelections: Set<DuplicateType> = [.name]
+    
+    @Published var incompleteNumbersSelected: Bool = true
+    @Published var incompleteNamesSelected: Bool = false
+    
+    @Published var customName: String = ""
+    @Published var customSurname: String = ""
+    @Published var customNumber: String = ""
+    @Published var customEmail: String = ""
+    @Published var customCount: String = "1"
+    
+    private var cancellables: Set<AnyCancellable> = []
+    
+    init() {
+        
     }
     
-    public func createContact(
-        name: String,
-        surname: String,
-        phoneNumber: String,
-        email: String
-    ) async throws {
-        try await contactsService.createContact(
-            name: name,
-            surname: surname,
-            phoneNumber: phoneNumber,
-            email: email)
+    func updateDuplicateSelection(type: DuplicateType, isOn: Bool) {
+        if isOn {
+            duplicateTypeSelections.insert(type)
+        } else {
+            if duplicateTypeSelections.count > 1 {
+                duplicateTypeSelections.remove(type)
+            }
+            // else do nothing: always keep at least one selected
+        }
     }
-    
-    public func getRandomName() -> String {
-        return ContactsModelGenerator.names.randomElement() ?? "Name"
-    }
-    
-    public func getRandomSurname() -> String {
-        return ContactsModelGenerator.surnames.randomElement() ?? "Surname"
-    }
-    
-    public func getRandomNumber() -> String {
-        return ContactsModelGenerator.phoneNumbers.randomElement() ?? "000-000-0000"
-    }
-    
-    public func getRandomEmail() -> String {
-        return ContactsModelGenerator.emails.randomElement() ?? "unknown@example.com"
-    }
-    
 }

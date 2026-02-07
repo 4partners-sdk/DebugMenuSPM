@@ -4,253 +4,235 @@ struct ContactsView: View {
     
     @ObservedObject var viewModel = ContactsViewModelGenerator()
     
-    @State private var info = "...info..."
-    @State private var name = ""
-    @State private var surname = ""
-    @State private var phoneNumber = ""
-    @State private var email = ""
+    // UI State
     @State private var numberOfContacts = "1"
+    @State private var allowDuplicates = true
+    @State private var selectedSegment = 0
+    
+    private let segments = ["General", "Duplicates", "Incomplete", "Custom"]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                // Info Text
-                Text(info)
-                
-                // Text Fields
-                Group {
-                    TextField("Name", text: $name)
+        ZStack {
+            ScrollView {
+                VStack(spacing: 16) {
                     
-                    TextField("Surname", text: $surname)
+                    Text("All contacts in device: \(viewModel.allContacts.count)")
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                        .padding(.top)
                     
-                    TextField("Phone Number", text: $phoneNumber)
-                        .keyboardType(.numberPad)
+                    // Info text
+                    Text(viewModel.state.title)
+                        .multilineTextAlignment(.center)
                     
-                    TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
+                    // Segmented Control
+                    Picker("Section", selection: $selectedSegment) {
+                        ForEach(0..<segments.count, id: \.self) { index in
+                            Text(segments[index]).tag(index)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
                     
-                    TextField("Number of Contacts", text: $numberOfContacts)
-                        .keyboardType(.numberPad)
+                    // Section Views
+                    VStack(spacing: 12) {
+                        switch selectedSegment {
+                        case 0: // General
+                            generalSection
+                        case 1: // Duplicates
+                            duplicatesSection
+                        case 2: // Incomplete
+                            incompleteSection
+                        case 3: // Custom
+                            customSection
+                        default:
+                            EmptyView()
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer()
                 }
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocorrectionDisabled(true)
-                .textInputAutocapitalization(.never)
-                .padding(.horizontal)
-                
-                // Duplicate Buttons
-                Group {
-                    Button(action: { createDuplicateNames() }) {
-                        Text("Create \(numberOfContacts) Duplicate Names")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    Button(action: { createDuplicateNumbers() }) {
-                        Text("Create \(numberOfContacts) Duplicate Numbers")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    Button(action: { createDuplicateEmails() }) {
-                        Text("Create \(numberOfContacts) Duplicate Emails")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                }
-                .padding(.horizontal, 25)
-                
-                // Incomplete Buttons
-                Group {
-                    Button(action: { createIncompleteNames() }) {
-                        Text("Create \(numberOfContacts) Incomplete Names")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    Button(action: { createIncompleteNumbers() }) {
-                        Text("Create \(numberOfContacts) Incomplete Numbers")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                }
-                .padding(.horizontal, 25)
-                
-                // Random Button
-                Button(action: { createRandomContacts() }) {
-                    Text("Generate \(numberOfContacts) Random Contacts")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal, 25)
-                
-                Spacer()
             }
-            .padding(.top, 10)
+            
+            ZStack {
+                if viewModel.isLoading {
+                    LoaderView().transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isLoading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(UIColor.systemGray6))
+        .errorAlert(error: $viewModel.error)
         .onTapGesture {
             hideKeyboard()
         }
-        .onAppear {
-            Task { @MainActor in _ = await viewModel.requestAccess() }
-        }
     }
-    
 }
 
 extension ContactsView {
-    private func createDuplicateNames() {
-        Task { @MainActor in
-            do {
-                info = "creating duplicate names"
-                if name == "" { info = "missing name"; return }
+    private var generalSection: some View {
+        VStack(spacing: 12) {
+            TextField("Number of Contacts", text: $numberOfContacts)
+                .keyboardType(.numberPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocorrectionDisabled(true)
+                .textInputAutocapitalization(.never)
+            
+            Toggle("Allow Duplicates", isOn: $allowDuplicates)
+                .padding(.horizontal)
+            
+            Button {
                 
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    let surname = (surname == "" ? viewModel.getRandomSurname() : surname)
-                    let phoneNumber = (phoneNumber == "" ? viewModel.getRandomNumber() : phoneNumber)
-                    let email = (email == "" ? viewModel.getRandomEmail() : email)
-                    try await viewModel.createContact(
-                        name: name,
-                        surname: surname,
-                        phoneNumber: phoneNumber,
-                        email: email)
-                }
-                
-                info = "successfully created \(numberOfContacts) duplicate names"
-            } catch {
-                info = error.localizedDescription
+            } label: {
+                Text("Generate \(numberOfContacts) Contacts")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
         }
     }
     
-    private func createDuplicateNumbers() {
-        Task { @MainActor in
-            do {
-                info = "creating duplicate numbers"
-                if phoneNumber == "" { info = "missing phone number"; return }
+    private var incompleteSection: some View {
+        VStack(spacing: 12) {
+            // Number of contacts
+            TextField("Number of Contacts", text: $numberOfContacts)
+                .keyboardType(.numberPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocorrectionDisabled(true)
+                .textInputAutocapitalization(.never)
+            
+            // Mutually exclusive toggles (always one selected)
+            VStack(spacing: 8) {
+                Toggle("Incomplete Number:", isOn: Binding(
+                    get: { viewModel.incompleteNumbersSelected },
+                    set: { newValue in
+                        if newValue {
+                            // user selected this toggle
+                            viewModel.incompleteNumbersSelected = true
+                            viewModel.incompleteNamesSelected = false
+                        } else {
+                            // user tried to unselect, switch to the other toggle
+                            viewModel.incompleteNumbersSelected = false
+                            viewModel.incompleteNamesSelected = true
+                        }
+                    }
+                ))
                 
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    let name = (name == "" ? viewModel.getRandomName() : name)
-                    let surname = (surname == "" ? viewModel.getRandomSurname() : surname)
-                    let email = (email == "" ? viewModel.getRandomEmail() : email)
-                    try await viewModel.createContact(
-                        name: name,
-                        surname: surname,
-                        phoneNumber: phoneNumber,
-                        email: email)
-                }
+                Toggle("Incomplete Name:", isOn: Binding(
+                    get: { viewModel.incompleteNamesSelected },
+                    set: { newValue in
+                        if newValue {
+                            viewModel.incompleteNamesSelected = true
+                            viewModel.incompleteNumbersSelected = false
+                        } else {
+                            viewModel.incompleteNamesSelected = false
+                            viewModel.incompleteNumbersSelected = true
+                        }
+                    }
+                ))
+            }
+            .padding(.horizontal)
+            
+            // Generate button
+            Button {
                 
-                info = "successfully created \(numberOfContacts) duplicate numbers"
-            } catch {
-                info = error.localizedDescription
+            } label: {
+                Text("Generate \(numberOfContacts) Incomplete Contacts")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
         }
     }
     
-    private func createDuplicateEmails() {
-        Task { @MainActor in
-            do {
-                info = "creating duplicate emails"
-                if email == "" { info = "missing email"; return }
+    private var duplicatesSection: some View {
+        VStack(spacing: 12) {
+            // Counts
+            HStack {
+                TextField("Groups", text: $viewModel.duplicateGroupsCount)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    let name = (name == "" ? viewModel.getRandomName() : name)
-                    let surname = (surname == "" ? viewModel.getRandomSurname() : surname)
-                    let phoneNumber = (phoneNumber == "" ? viewModel.getRandomNumber() : phoneNumber)
-                    try await viewModel.createContact(
-                        name: name,
-                        surname: surname,
-                        phoneNumber: phoneNumber,
-                        email: email)
-                }
+                TextField("Contacts Per Group", text: $viewModel.duplicatesPerGroup)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+            
+            // Mutually exclusive toggles
+            VStack(spacing: 8) {
+                Toggle("Duplicate Name:", isOn: Binding(
+                    get: { viewModel.duplicateTypeSelections.contains(.name) },
+                    set: { newValue in
+                        viewModel.updateDuplicateSelection(type: .name, isOn: newValue)
+                    }
+                ))
                 
-                info = "successfully created \(numberOfContacts) duplicate emails"
-            } catch {
-                info = error.localizedDescription
+                Toggle("Duplicate Number:", isOn: Binding(
+                    get: { viewModel.duplicateTypeSelections.contains(.number) },
+                    set: { newValue in
+                        viewModel.updateDuplicateSelection(type: .number, isOn: newValue)
+                    }
+                ))
+                
+                Toggle("Duplicate Email:", isOn: Binding(
+                    get: { viewModel.duplicateTypeSelections.contains(.email) },
+                    set: { newValue in
+                        viewModel.updateDuplicateSelection(type: .email, isOn: newValue)
+                    }
+                ))
+            }
+            .padding(.horizontal)
+            
+            // Generate button
+            Button {
+                
+            } label: {
+                Text("Generate \(viewModel.duplicateGroupsCount) groups × \(viewModel.duplicatesPerGroup) contacts each")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
         }
     }
     
-    private func createIncompleteNames() {
-        Task { @MainActor in
-            do {
-                info = "creating incomplete names"
-                if phoneNumber == "" { info = "missing number"; return }
-                
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    try await viewModel.createContact(
-                        name: "",
-                        surname: "",
-                        phoneNumber: phoneNumber,
-                        email: email)
-                }
-                
-                info = "successfully created \(numberOfContacts) incomplete names"
-            } catch {
-                info = error.localizedDescription
+    private var customSection: some View {
+        VStack(spacing: 12) {
+            // Optional fields
+            Group {
+                TextField("Name (optional)", text: $viewModel.customName)
+                TextField("Surname (optional)", text: $viewModel.customSurname)
+                TextField("Phone Number (optional)", text: $viewModel.customNumber)
+                    .keyboardType(.numberPad)
+                TextField("Email (optional)", text: $viewModel.customEmail)
+                    .keyboardType(.emailAddress)
             }
-        }
-    }
-    
-    private func createIncompleteNumbers() {
-        Task { @MainActor in
-            do {
-                info = "creating incomplete numbers"
-                if name == "" { info = "missing name"; return }
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .autocorrectionDisabled(true)
+            .textInputAutocapitalization(.never)
+            
+            // Count field
+            TextField("Number of Contacts", text: $viewModel.customCount)
+                .keyboardType(.numberPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            // Generate button
+            Button {
                 
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    let surname = (surname == "" ? viewModel.getRandomSurname() : surname)
-                    try await viewModel.createContact(
-                        name: name,
-                        surname: surname,
-                        phoneNumber: "",
-                        email: email)
-                }
-                
-                info = "successfully created \(numberOfContacts) incomplete numbers"
-            } catch {
-                info = error.localizedDescription
-            }
-        }
-    }
-    
-    private func createRandomContacts() {
-        Task { @MainActor in
-            do {
-                info = "creating random contacts"
-                
-                let numberOfContacts = Int(numberOfContacts) ?? 1
-                for _ in 1...numberOfContacts {
-                    try await viewModel.createContact(
-                        name: viewModel.getRandomName(),
-                        surname: viewModel.getRandomSurname(),
-                        phoneNumber: viewModel.getRandomNumber(),
-                        email: viewModel.getRandomEmail())
-                }
-                
-                info = "successfully created \(numberOfContacts) random contacts"
-            } catch {
-                info = error.localizedDescription
+            } label: {
+                Text("Generate \(viewModel.customCount) Contacts")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
             }
         }
     }

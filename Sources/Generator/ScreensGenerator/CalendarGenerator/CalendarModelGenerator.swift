@@ -41,8 +41,8 @@ enum CalendarActionState {
     var title: String {
         switch self {
         case .readyToGo: "Ready to Go!"
-        case .creatingEvents(let count): "Creating \(count) Events"
-        case .deletingAllEvents: "Deleting "
+        case .creatingEvents(let count): "Creating \(count) Events..."
+        case .deletingAllEvents: "Deleting..."
         }
     }
 }

@@ -42,7 +42,9 @@ struct CalendarView: View {
                 
                 // Generate button
                 Button {
-                    viewModel.createEvents(count: Int(numberOfEvents) ?? 1, startDate: startDate, endDate: endDate)
+                    if let count = (Int(numberOfEvents)), count >= 1 {
+                        viewModel.createEvents(count: count, startDate: startDate, endDate: endDate)
+                    }
                 } label: {
                     Text("Generate \(numberOfEvents) Events")
                         .frame(maxWidth: .infinity)
@@ -55,7 +57,9 @@ struct CalendarView: View {
                 
                 // Delete all events button
                 Button {
-                    viewModel.deleteAll()
+                    if !viewModel.allEvents.isEmpty {
+                        viewModel.deleteAll()
+                    }
                 } label: {
                     Text("Delete All Events")
                         .frame(maxWidth: .infinity)

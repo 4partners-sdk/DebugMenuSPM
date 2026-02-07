@@ -1,6 +1,8 @@
 import UIKit
 import Contacts
 
+typealias ContactEntity = CNContact
+
 protocol ContactsServiceGenerator {
     func requestAccess() async -> Bool
     
