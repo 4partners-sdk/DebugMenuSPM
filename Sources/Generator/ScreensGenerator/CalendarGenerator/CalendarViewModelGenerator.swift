@@ -1,30 +1,65 @@
 import SwiftUI
+import Combine
 
+@MainActor
 final class CalendarViewModelGenerator: ObservableObject {
-    
     private let calendarService: CalendarServiceGenerator = CalendarServiceImpl()
     
-    public func requestAccess() async -> Bool {
-        await calendarService.requestAccess()
-    }
+    @Published public var allEvents: [EventEntity] = []
+    @Published public var state: CalendarActionState = .readyToGo
+    @Published public var isLoading: Bool = false
+    @Published public var error: Error?
     
-    public func createEvent(isForFuture: Bool) async throws {
-        let title = CalendarModelGenerator.titles.randomElement() ?? "Untitled Event"
+    private var cancellables: Set<AnyCancellable> = []
+    
+    init() {
+        calendarService.allEventsPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] events in
+                self?.allEvents = events
+            }
+            .store(in: &cancellables)
         
-        let filteredDates = CalendarModelGenerator.startDates.filter {
-            isForFuture ? $0 > Date() : $0 < Date()
+        Task {
+            if await calendarService.requestAccess() {
+                do {
+                    try await calendarService.fetchAll()
+                } catch {
+                    self.error = error
+                }
+            }
         }
-        
-        let startDate = filteredDates.randomElement() ?? Date()
-        
-        let timeInterval = CalendarModelGenerator.timeIntervals.randomElement() ?? 3600
-        let endDate = startDate.addingTimeInterval(timeInterval)
-        
-        try await calendarService.createEvent(
-            title: title,
-            startDate: startDate,
-            endDate: endDate
-        )
     }
     
+    public func createEvents(count: Int, startDate: Date, endDate: Date) {
+        Task {
+            isLoading = true; defer { isLoading = false }
+            state = .creatingEvents(count: count)
+            
+            do {
+                try await calendarService.createEvents(
+                    numberOfEvents: count,
+                    startDate: startDate,
+                    endDate: endDate
+                )
+                state = .readyToGo
+            } catch {
+                self.error = error
+            }
+        }
+    }
+    
+    public func deleteAll() {
+        Task {
+            isLoading = true; defer { isLoading = false }
+            state = .deletingAllEvents
+            
+            do {
+                try await calendarService.deleteAll()
+                state = .readyToGo
+            } catch {
+                self.error = error
+            }
+        }
+    }
 }
