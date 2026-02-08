@@ -8,14 +8,14 @@ protocol CalendarServiceGenerator {
     var allEventsPublisher: AnyPublisher<[EventEntity], Never> { get }
     
     func requestAccess() async -> Bool
-    
     func fetchAll() async throws
+    func deleteAll() async throws
+    
     func createEvents(
         numberOfEvents: Int,
         startDate: Date,
         endDate: Date
     ) async throws
-    func deleteAll() async throws
 }
 
 final class CalendarServiceImpl: CalendarServiceGenerator {

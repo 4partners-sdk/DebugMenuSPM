@@ -117,3 +117,7 @@ enum ContactsActionState {
         }
     }
 }
+
+enum DuplicateType: Hashable {
+    case name, number, email
+}

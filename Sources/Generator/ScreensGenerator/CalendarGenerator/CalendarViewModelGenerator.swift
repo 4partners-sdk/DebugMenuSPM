@@ -21,6 +21,7 @@ final class CalendarViewModelGenerator: ObservableObject {
             .store(in: &cancellables)
         
         Task {
+            isLoading = true; defer { isLoading = false }
             if await calendarService.requestAccess() {
                 do {
                     try await calendarService.fetchAll()

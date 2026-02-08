@@ -4,9 +4,6 @@ struct ContactsView: View {
     
     @ObservedObject var viewModel = ContactsViewModelGenerator()
     
-    // UI State
-    @State private var numberOfContacts = "1"
-    @State private var allowDuplicates = true
     @State private var selectedSegment = 0
     
     private let segments = ["General", "Duplicates", "Incomplete", "Custom"]
@@ -48,6 +45,19 @@ struct ContactsView: View {
                         default:
                             EmptyView()
                         }
+                        
+                        Button {
+                            if !viewModel.allContacts.isEmpty {
+                                viewModel.deleteAll()
+                            }
+                        } label: {
+                            Text("Delete All Contacts")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
                     }
                     .padding(.horizontal)
                     
@@ -74,19 +84,19 @@ struct ContactsView: View {
 extension ContactsView {
     private var generalSection: some View {
         VStack(spacing: 12) {
-            TextField("Number of Contacts", text: $numberOfContacts)
+            TextField("Number of Contacts", text: $viewModel.allNumberOfCount)
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocorrectionDisabled(true)
                 .textInputAutocapitalization(.never)
             
-            Toggle("Allow Duplicates", isOn: $allowDuplicates)
+            Toggle("Allow Duplicates:", isOn: $viewModel.allAllowDuplicates)
                 .padding(.horizontal)
             
             Button {
-                
+                viewModel.createGeneralContacts()
             } label: {
-                Text("Generate \(numberOfContacts) Contacts")
+                Text("Generate \(viewModel.allNumberOfCount) Contacts")
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)
@@ -98,14 +108,12 @@ extension ContactsView {
     
     private var incompleteSection: some View {
         VStack(spacing: 12) {
-            // Number of contacts
-            TextField("Number of Contacts", text: $numberOfContacts)
+            TextField("Number of Contacts", text: $viewModel.incompleteCount)
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocorrectionDisabled(true)
                 .textInputAutocapitalization(.never)
             
-            // Mutually exclusive toggles (always one selected)
             VStack(spacing: 8) {
                 Toggle("Incomplete Number:", isOn: Binding(
                     get: { viewModel.incompleteNumbersSelected },
@@ -137,11 +145,10 @@ extension ContactsView {
             }
             .padding(.horizontal)
             
-            // Generate button
             Button {
-                
+                viewModel.createIncompleteContacts()
             } label: {
-                Text("Generate \(numberOfContacts) Incomplete Contacts")
+                Text("Generate \(viewModel.incompleteCount) Incomplete Contacts")
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)
@@ -153,7 +160,6 @@ extension ContactsView {
     
     private var duplicatesSection: some View {
         VStack(spacing: 12) {
-            // Counts
             HStack {
                 TextField("Groups", text: $viewModel.duplicateGroupsCount)
                     .keyboardType(.numberPad)
@@ -164,7 +170,6 @@ extension ContactsView {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             }
             
-            // Mutually exclusive toggles
             VStack(spacing: 8) {
                 Toggle("Duplicate Name:", isOn: Binding(
                     get: { viewModel.duplicateTypeSelections.contains(.name) },
@@ -189,9 +194,8 @@ extension ContactsView {
             }
             .padding(.horizontal)
             
-            // Generate button
             Button {
-                
+                viewModel.createDuplicateContacts()
             } label: {
                 Text("Generate \(viewModel.duplicateGroupsCount) groups × \(viewModel.duplicatesPerGroup) contacts each")
                     .frame(maxWidth: .infinity)
@@ -205,9 +209,8 @@ extension ContactsView {
     
     private var customSection: some View {
         VStack(spacing: 12) {
-            // Optional fields
             Group {
-                TextField("Name (optional)", text: $viewModel.customName)
+                TextField("Name (must have)", text: $viewModel.customName)
                 TextField("Surname (optional)", text: $viewModel.customSurname)
                 TextField("Phone Number (optional)", text: $viewModel.customNumber)
                     .keyboardType(.numberPad)
@@ -218,14 +221,12 @@ extension ContactsView {
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
             
-            // Count field
             TextField("Number of Contacts", text: $viewModel.customCount)
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             
-            // Generate button
             Button {
-                
+                viewModel.createCustomContacts()
             } label: {
                 Text("Generate \(viewModel.customCount) Contacts")
                     .frame(maxWidth: .infinity)
