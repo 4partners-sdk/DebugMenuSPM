@@ -103,3 +103,21 @@ struct ContactsModelGenerator {
         "sadieb@example.com", "adrianw@example.com", "nevaehk@example.com"
     ]
 }
+
+enum ContactsActionState {
+    case readyToGo
+    case creatingContacts(count: Int)
+    case deletingAllContacts
+    
+    var title: String {
+        switch self {
+        case .readyToGo: "Ready to Go!"
+        case .creatingContacts(let count): "Creating \(count) Contacts..."
+        case .deletingAllContacts: "Deleting..."
+        }
+    }
+}
+
+enum DuplicateType: Hashable {
+    case name, number, email
+}
